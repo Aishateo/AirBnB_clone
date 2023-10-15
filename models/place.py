@@ -1,15 +1,15 @@
 #!/usr/bin/python3
-""" This module contains the Place class """
+''' This module contains the Place class '''
 from models.base_model import BaseModel
 from typing import List
 
 
 class Place(BaseModel):
-    """ This class represents Place """
-    city_id: str = ""
-    user_id: str = ""
-    name: str = ""
-    description: str = ""
+    ''' This class represents Place '''
+    city_id: str = ''
+    user_id: str = ''
+    name: str = ''
+    description: str = ''
     number_rooms: int = 0
     number_bathrooms: int = 0
     max_guest: int = 0

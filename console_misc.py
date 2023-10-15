@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-""" This module contains data for the console """
+''' This module contains data for the console '''
 from models.base_model import BaseModel
 from models.user import User
 from models.amenity import Amenity

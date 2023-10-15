@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 """ This module contains HBNB CLI Interpreter """
+
+import contextlib
 from cmd import Cmd
 from console_misc import classes, commands, attribute_types
 from sys import stdin
@@ -16,26 +18,25 @@ class HBNBCommand(Cmd):
 
     def precmd(self, line):
         """ Predefine command line """
-        if not any(char in line for char in ['.', '(', ')']):
+        if all(char not in line for char in ['.', '(', ')']):
             return line
+        try:
+            cls_name, *args = line.split('.')
+            if cls_name in classes and len(args) == 1:
+                cmd_with_arg = args[0].partition('(')[-1]
+                __cmd = args[0].partition('(')[0]
+                if len(cmd_with_arg) > 1:
+                    command = commands[commands.index(__cmd)]
+                    __cls_id = cmd_with_arg.partition(')')[0]
+                    line = f"{command} {cls_name} {__cls_id}"
+                else:
+                    line = f"{__cmd} {cls_name}"
+        except Exception:
+            pass
         else:
-            try:
-                cls_name, *args = line.split('.')
-                if cls_name in classes and len(args) == 1:
-                    cmd_with_arg = args[0].partition('(')[-1]
-                    __cmd = args[0].partition('(')[0]
-                    if len(cmd_with_arg) > 1:
-                        command = commands[commands.index(__cmd)]
-                        __cls_id = cmd_with_arg.partition(')')[0]
-                        line = f"{command} {cls_name} {__cls_id}"
-                    else:
-                        line = f"{__cmd} {cls_name}"
-            except Exception:
-                pass
-            else:
-                return line
-            finally:
-                return line
+            return line
+        finally:
+            return line
 
     # Instance Commands
 
@@ -47,12 +48,10 @@ class HBNBCommand(Cmd):
             print("** class doesn't exist **")
             return
         else:
-            try:
+            with contextlib.suppress(KeyError):
                 new_instance = classes[line]()
                 new_instance.save()
                 print(new_instance.id)
-            except KeyError:
-                pass
 
     # TODO Refactor conditions
 
@@ -69,12 +68,12 @@ class HBNBCommand(Cmd):
         if instance_name not in classes:
             print("** class doesn't exist **")
             return
-        if instance_name in classes and not instance_id:
+        if not instance_id:
             print("** instance id missing **")
 
         try:
 
-            key = instance_name + "." + instance_id
+            key = f"{instance_name}.{instance_id}"
             print(HBNBCommand.__storage.all()[key])
         except KeyError:
             if instance_name in classes and instance_id:
@@ -96,7 +95,7 @@ class HBNBCommand(Cmd):
             print("** instance id missing **")
 
         try:
-            key = instance_name + "." + instance_id
+            key = f"{instance_name}.{instance_id}"
             del HBNBCommand.__storage.all()[key]
             HBNBCommand.__storage.save()
         except KeyError:
@@ -143,7 +142,7 @@ class HBNBCommand(Cmd):
 
         instance_id = args[1]
         all_objs = HBNBCommand.__storage.all()
-        key = cls_name + "." + instance_id
+        key = f"{cls_name}.{instance_id}"
 
         if key not in all_objs:
             print("** no instance found **")
@@ -157,21 +156,24 @@ class HBNBCommand(Cmd):
             print("** value missing **")
             return
         if len(args) == 4:
-            attribute_name = args[2]
-            attribute_value = args[3]
-            if attribute_name in attribute_types:
-                attribute_value = attribute_types[attribute_name](
-                    attribute_value)
-            instance = all_objs[key]
-            setattr(instance, attribute_name, attribute_value)
-            instance.save()
+            self._extracted_from_do_update_36(args, all_objs, key)
+
+    # TODO Rename this here and in `do_update`
+    def _extracted_from_do_update_36(self, args, all_objs, key):
+        attribute_name = args[2]
+        attribute_value = args[3]
+        if attribute_name in attribute_types:
+            attribute_value = attribute_types[attribute_name](
+                attribute_value)
+        instance = all_objs[key]
+        setattr(instance, attribute_name, attribute_value)
+        instance.save()
 
     def do_count(self, args):
         """ Counts the number of instances based on class """
-        count: int = 0
-        for key in HBNBCommand.__storage.all():
-            if args == key.split(".")[0]:
-                count += 1
+        count: int = sum(
+            args == key.split(".")[0] for key in HBNBCommand.__storage.all()
+        )
         print(count)
 
     # Main Commands
